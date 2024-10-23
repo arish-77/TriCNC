@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Order Details</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>                                                                                
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-image: url('img/bg1.jpg'); /* Path to your background image */
+            background-size: cover; /* Cover the entire page */
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .container {
+            width: 800px;
+            margin: 0 auto;
+            background-color: #fff; /* Solid white background */
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 20px auto;
+            width: 100px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 28px;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .add-remove-btn {
+            margin-top: 10px;
+        }
+
+        .add-button {
+            background-color: #3498db;
+        }
+
+        .add-button:hover {
+            background-color: #2980b9;
+        }
+
+        .remove-button {
+            background-color: #e74c3c;
+        }
+
+        .remove-button:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <img src="img/image.png" alt="Company Logo" class="logo"> <!-- Update this path to your logo -->
+        <h1>Purchase Order Details</h1>
+
+        <!-- Input fields and form -->
+        <div class="input-row">
+            <label for="po-date">PO Date (dd/mm/yyyy):</label>
+            <input type="text" id="po-date" placeholder="Enter PO Date" required>
+        </div>
+        <div class="input-row">
+            <label for="requisitioner">Requisitioner:</label>
+            <input type="text" id="requisitioner" placeholder="Enter requisitioner name" required>
+        </div>
+        <div class="input-row">
+            <label for="shipped-via">Shipped VIA:</label>
+            <input type="text" id="shipped-via" placeholder="Enter shipping method" required>
+        </div>
+        <div class="input-row">
+            <label for="due-date">Due Date (dd/mmy/yyy):</label>
+            <input type="text" id="due-date" placeholder="Enter due date" required>
+        </div>
+        <div class="input-row">
+            <label for="terms">Terms:</label>
+            <input type="text" id="terms" placeholder="Enter terms" required>
+        </div>
+        <div class="input-row">
+            <label for="payment-method">Payment Method:</label>
+            <input type="text" id="payment-method" placeholder="Enter payment method" required>
+        </div>
+        <div class="input-row">
+            <label for="purchase-order">Purchase Order #:</label>
+            <input type="text" id="purchase-order" placeholder="Enter Purchase Order Number" required>
+        </div>
+
+        <div class="input-row">
+            <label for="to">To:</label>
+            <input type="text" id="to" placeholder="Enter customer name or company" required>
+        </div>
+        <div class="input-row">
+            <label for="shipping">Shipping & Handling:</label>
+            <input type="number" id="shipping" placeholder="Enter shipping cost" step="0.01" min="0" required>
+        </div>
+        <div class="input-row">
+            <label for="credit-fee">3% Credit Card Fee:</label>
+            <input type="number" id="credit-fee" placeholder="Enter credit card fee" step="0.01" min="0" required>
+        </div>
+        <div class="input-row">
+            <label for="sales-tax">Sales Tax:</label>
+            <input type="number" id="sales-tax" placeholder="Enter sales tax amount" step="0.01" min="0" required>
+        </div>
+
+        <hr>
+
+        <!-- Item input section -->
+        <div id="items-container">
+            <div class="item-row" id="item-row-1">
+                <label for="description-1">Description (item 1):</label>
+                <div class="input-group">
+                    <input type="text" id="description-1" placeholder="Enter item description" required>
+                    <input type="number" id="qty-1" placeholder="Qty" min="1" required>
+                    <input type="number" id="price-1" placeholder="Unit Price" step="0.01" min="0" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/remove items -->
+        <div class="add-remove-btn">
+            <button type="button" class="add-button" onclick="addItem()">+ Add Item</button>
+            <button type="button" class="remove-button" onclick="removeLastItem()">Remove Item</button>
+        </div>
+
+        <br><br>
+        <button type="button" onclick="generatePDF()">Generate PDF</button>
+    </div>
+
+    <script>
+        let itemCount = 1;
+        const removedItemIds = [];
+        let lastQuoteNumber = "A0000";
+
+        function addItem() {
+            itemCount++;
+            const itemsContainer = document.getElementById('items-container');
+            const newItemRow = document.createElement('div');
+            newItemRow.classList.add('item-row');
+
+            const itemId = removedItemIds.length > 0 ? removedItemIds.pop() : itemCount;
+            newItemRow.id = `item-row-${itemId}`;
+            newItemRow.innerHTML = `
+                <label for="description-${itemId}">Description (item ${itemId}):</label>
+                <div class="input-group">
+                    <input type="text" id="description-${itemId}" placeholder="Enter item description" required>
+                    <input type="number" id="qty-${itemId}" placeholder="Qty" min="1" required>
+                    <input type="number" id="price-${itemId}" placeholder="Unit Price" step="0.01" min="0" required>
+                </div>
+            `;
+            itemsContainer.appendChild(newItemRow);
+        }
+
+        function removeLastItem() {
+            if (itemCount > 1) {
+                const itemRow = document.getElementById(`item-row-${itemCount}`);
+                itemRow.remove();
+                itemCount--;
+                removedItemIds.push(itemCount + 1);
+            }
+        }
+
+        function generateNextQuoteNumber() {
+            let [charPart, numPart] = [lastQuoteNumber[0], parseInt(lastQuoteNumber.slice(1))];
+            if (numPart === 9999) {
+                charPart = String.fromCharCode(charPart.charCodeAt(0) + 1);
+                numPart = 1;
+            } else {
+                numPart += 1;
+            }
+
+            const newQuoteNumber = charPart + numPart.toString().padStart(4, '0');
+            lastQuoteNumber = newQuoteNumber;
+            return newQuoteNumber;
+        }
+
+        function getCurrentDate() {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const year = today.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+         // Function to generate PDF
+    function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const items = [];
+
+    const to = document.getElementById('to').value;
+    const poDate = document.getElementById('po-date').value;
+    const purchaseOrder = document.getElementById('purchase-order').value;
+    const shipping = parseFloat(document.getElementById('shipping').value);
+    const creditFee = parseFloat(document.getElementById('credit-fee').value);
+    const salesTax = parseFloat(document.getElementById('sales-tax').value);
+    const requisitioner = document.getElementById('requisitioner').value;
+    const shippedVia = document.getElementById('shipped-via').value;
+    const dueDate = document.getElementById('due-date').value;
+    const terms = document.getElementById('terms').value;
+    const paymentMethod = document.getElementById('payment-method').value;
+
+    let subtotal = 0;
+    for (let i = 1; i <= itemCount; i++) {
+        const description = document.getElementById(`description-${i}`).value;
+        const qty = parseInt(document.getElementById(`qty-${i}`).value);
+        const price = parseFloat(document.getElementById(`price-${i}`).value);
+        const total = qty * price;
+        subtotal += total;
+        items.push({ itemNo: i, description, qty, price, total });
+    }
+    const totalAmount = subtotal + shipping + creditFee + salesTax;
+
+    // Load the logo
+    const img = new Image();
+    img.src = 'img/image.png';  // Update this with the actual path of your logo
+
+    img.onload = function () {
+        // Add logo at the top
+        doc.addImage(img, 'PNG', 90, 10, 30, 30);  // Adjust the size and position as needed
+
+        // Add company details and other content below the logo
+        doc.setFontSize(24);
+        doc.setFont('Helvetica', 'bold');
+        doc.text('TriCNC', 105, 50, { align: 'center' });
+
+        doc.setFontSize(14);
+        doc.setFont('Helvetica', 'italic');
+        doc.text('Quality, Efficiency, Safety', 105, 60, { align: 'center' });
+
+        doc.setFontSize(12);
+        doc.setFont('Helvetica', 'normal');
+        doc.text('8516 Dakota Drive, Gaithersburg, MD 20877', 105, 70, { align: 'center' });
+        doc.text('Ph: 240 855 2221', 105, 75, { align: 'center' });
+        doc.text('Email: Phat@TriCNC.com', 105, 80, { align: 'center' });
+
+        // Draw a line below the header
+        doc.setLineWidth(0.5);
+        doc.line(10, 90, 200, 90);
+
+        // Add quote number and other fields
+        doc.setFontSize(10);
+        doc.text(`Quote No.: ${generateNextQuoteNumber()}`, 190, 20, { align: 'right' });
+        doc.text(`Date: ${getCurrentDate()}`, 14, 100);
+        doc.text(`From: TriCNC`, 14, 110);
+        doc.text(`To: ${to}`, 14, 120);
+        doc.text(`Purchase Order #: ${purchaseOrder}`, 14, 130);
+
+        // Table 1 - PO-related fields
+        const table1Columns = ["PO Date", "Requisitioner", "Shipped VIA", "Due Date", "Terms", "Payment Method"];
+        const table1Rows = [[poDate, requisitioner, shippedVia, dueDate, terms, paymentMethod]];
+        doc.autoTable({
+            startY: 140,
+            head: [table1Columns],
+            body: table1Rows,
+        });
+
+        // Table 2 - Items with item numbers
+        const table2Columns = ["Item No.", "Description", "Quantity", "Unit Price", "Total"];
+        const table2Rows = items.map(item => [
+            item.itemNo,
+            item.description,
+            item.qty,
+            item.price.toFixed(2),
+            item.total.toFixed(2)
+        ]);
+        doc.autoTable({
+            startY: doc.autoTable.previous.finalY + 10,
+            head: [table2Columns],
+            body: table2Rows,
+        });
+
+        // Add totals below the items table
+        let finalY = doc.autoTable.previous.finalY + 10;
+        doc.text(`Subtotal: $${subtotal.toFixed(2)}`, 14, finalY + 10);
+        doc.text(`Shipping & Handling: $${shipping.toFixed(2)}`, 14, finalY + 20);
+        doc.text(`Credit Card Fee: $${creditFee.toFixed(2)}`, 14, finalY + 30);
+        doc.text(`Sales Tax: $${salesTax.toFixed(2)}`, 14, finalY + 40);
+        doc.text(`Total Amount: $${totalAmount.toFixed(2)}`, 14, finalY + 50);
+
+        // Save the PDF with the purchase order number
+        doc.save(`purchase_order_${purchaseOrder}.pdf`);
+        };
+    }
+    </script>
+</body>
+</html>
